@@ -1,6 +1,7 @@
 import MDAnalysis as mda
 import numpy as np
 from ase import Atoms
+from tqdm.auto import tqdm
 from MDAnalysis.lib.mdamath import triclinic_vectors   # for the cell matrix
 
 
@@ -16,26 +17,30 @@ symbols = [a.element.title() if a.element
            else a.name[0].upper()          # crude fallback: first letter of atom name
            for a in u.atoms]
 
-ase_frames = []
-
+cs_isos = []
+model = ShiftML("ShiftML3", device="cuda")
 print(len(u.trajectory), "frames in MDAnalysis trajectory.")
 
-for ts in u.trajectory[:2]:                    # iterate over every frame
-    # positions are already in Å if convert_units=True
+
+def ts_to_ase(ts):
+    """Convert a single MDAnalysis timestep to an ASE Atoms object."""
+    
     pos  = ts.positions.copy()
-
-    # build the (3×3) cell matrix from GROMACS box lengths & angles
-    cell = triclinic_vectors(ts.dimensions)   # also Å
-
-    # assemble an ase.Atoms for this frame
+    cell = triclinic_vectors(ts.dimensions)
     frame = Atoms(symbols, positions=pos, cell=cell, pbc=True)
-
-    # optional: attach velocities (Å/fs).  MDAnalysis keeps them in Å/ps
+    
     if ts.has_velocities:
         frame.set_velocities(ts.velocities / 1000.0)  # ps → fs
+    
+    return frame
 
-    ase_frames.append(frame)
+for ts in tqdm(u.trajectory[:3]):                    # iterate over every frame
+    # positions are already in Å if convert_units=True
+    frame = ts_to_ase(ts)  # convert MDAnalysis timestep to ASE Atoms object
+    
+    Yiso = model.get_cs_iso(frame)
+    cs_isos.append(Yiso)
 
-print(len(ase_frames), "frames loaded from MDAnalysis trajectory.")
-print(len(ase_frames[0]))
-print(ase_frames[0])
+cs_isos = np.array(cs_isos)
+np.save("cs_isos.npy", cs_isos)
+print("CS isos:", cs_isos.shape)
