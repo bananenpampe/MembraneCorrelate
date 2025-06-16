@@ -1,0 +1,1 @@
+Run `get_data.py` to download the samll example trajectory from: https://zenodo.org/records/1468560

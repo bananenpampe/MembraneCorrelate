@@ -1,0 +1,9 @@
+build/
+dist/
+*.pyc
+__pycache__/
+*.egg-info/
+.tox/
+*.pt
+.DS_Store
+data/zenodo_1468560/
