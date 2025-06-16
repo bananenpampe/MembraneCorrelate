@@ -7,3 +7,5 @@ __pycache__/
 *.pt
 .DS_Store
 data/zenodo_1468560/
+analysis/first_frame.xyz
+analysis/cs_isos.npy
