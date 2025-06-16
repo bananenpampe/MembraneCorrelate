@@ -3,7 +3,7 @@ import numpy as np
 from ase import Atoms
 from tqdm.auto import tqdm
 from MDAnalysis.lib.mdamath import triclinic_vectors   # for the cell matrix
-
+import ase.io
 
 from shiftml.ase import ShiftML
 
@@ -17,7 +17,7 @@ symbols = [a.element.title() if a.element
            else a.name[0].upper()          # crude fallback: first letter of atom name
            for a in u.atoms]
 
-cs_isos = []
+
 model = ShiftML("ShiftML3", device="cuda")
 print(len(u.trajectory), "frames in MDAnalysis trajectory.")
 
@@ -34,11 +34,16 @@ def ts_to_ase(ts):
     
     return frame
 
-for ts in tqdm(u.trajectory[:3]):                    # iterate over every frame
+cs_isos = []
+
+for n, ts in tqdm(enumerate(u.trajectory[::5])):                    # iterate over every frame
     # positions are already in Å if convert_units=True
+    if n == 0:
+        ase.io.write("first_frame.xyz", ts_to_ase(ts))  # write first frame to file
+    
     frame = ts_to_ase(ts)  # convert MDAnalysis timestep to ASE Atoms object
     
-    Yiso = model.get_cs_iso(frame)
+    Yiso = model.get_cs_iso_ensemble(frame) # shape (N_atoms, N_ensemble)
     cs_isos.append(Yiso)
 
 cs_isos = np.array(cs_isos)
